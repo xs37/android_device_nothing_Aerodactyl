@@ -43,14 +43,25 @@ BOARD_KERNEL_PAGESIZE := 4096
 BOARD_TAGS_OFFSET := 0x07c88000
 BOARD_RAMDISK_OFFSET := 0x26f08000
 BOARD_RAMDISK_USE_LZ4 := true
+LZ4_COMPRESSION_LEVEL := 1
+# Force mkbootimg to format the lz4 headers cleanly for MTK's parser
+BOARD_MKBOOTIMG_ARGS += --vendor_ramdisk_fragment_args="-l -B4 -BD"
 
-BOARD_KERNEL_CMDLINE += androidboot.console=0
-BOARD_KERNEL_CMDLINE += bootopt=64S3,32N2,64N2
+# Clean, targeted core layout for pure 64-bit MT6886 architecture
+BOARD_KERNEL_CMDLINE += bootopt=64S3,64N2
 BOARD_KERNEL_CMDLINE += cgroup_disable=memory
-BOARD_KERNEL_CMDLINE += initcall_debug=0 loglevel=0 log_buf_len=1024K
 BOARD_KERNEL_CMDLINE += kasan=off
 BOARD_KERNEL_CMDLINE += rcu_nocbs=all rcutree.enable_rcu_lazy
 BOARD_KERNEL_CMDLINE += sysctl.kernel.sched_pelt_multiplier=4
+
+# MAXIMUM VERBOSE KERNEL LOGGING MATRIX
+BOARD_KERNEL_CMDLINE += initcall_debug=1 loglevel=8 log_buf_len=16M ignore_loglevel
+BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
+BOARD_KERNEL_CMDLINE += earlycon=uart8250,mmio32,0x11007000
+BOARD_KERNEL_CMDLINE += met_trace=1 androidboot.force_normal_boot=1
+
+PRODUCT_PROPERTY_OVERRIDES += \
+    init.svc_debug.init=1
 
 BOARD_INIT_BOOT_HEADER_VERSION := 4
 
@@ -160,7 +171,7 @@ TARGET_VENDOR_PROP += $(DEVICE_PATH)/vendor.prop
 
 # Recovery
 BOARD_MOVE_RECOVERY_RESOURCES_TO_VENDOR_BOOT := true
-BOARD_INCLUDE_RECOVERY_RAMDISK_IN_VENDOR_BOOT := true
+#BOARD_INCLUDE_RECOVERY_RAMDISK_IN_VENDOR_BOOT := true
 TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/init/fstab.mt6886
 TARGET_RECOVERY_PIXEL_FORMAT := BGRA_8888
 TARGET_USERIMAGES_USE_F2FS := true
@@ -174,9 +185,7 @@ BOARD_VENDOR_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/vendor
 
 # Verified Boot
 BOARD_AVB_ENABLE := true
-ifneq ($(filter PacmanPro, $(PRODUCT_DEVICE)),)
-BOARD_AVB_MAKE_VBMETA_IMAGE_ARGS += --flags 3
-endif
+BOARD_AVB_MAKE_VBMETA_IMAGE_ARGS += --flags 2
 BOARD_MOVE_GSI_AVB_KEYS_TO_VENDOR_BOOT := true
 
 BOARD_AVB_ALGORITHM := SHA256_RSA2048

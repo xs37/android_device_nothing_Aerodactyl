@@ -1,3 +1,13 @@
 on init
     setprop sys.usb.configfs 1
     setprop sys.usb.controller "11201000.usb0"
+
+service create_pl_dev /system/bin/create_pl_dev
+    user root
+    group root
+    disabled
+    oneshot
+    seclabel u:r:recovery:s0
+
+on fs
+    start create_pl_dev
