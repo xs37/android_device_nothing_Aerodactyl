@@ -1,3 +1,6 @@
+# Face unlock
+/vendor/bin/hw/android\.hardware\.biometrics\.face-service\.noth    u:object_r:hal_face_default_exec:s0
+
 # Fingerprint
 /data/vendor/goodix(/.*)?                                                     u:object_r:vendor_goodix_gf_data_file:s0
 /vendor/bin/hw/android\.hardware\.biometrics\.fingerprint-service\.nothing    u:object_r:hal_fingerprint_default_exec:s0
@@ -8,9 +11,6 @@
 # NTF
 /dev/ntfeature             u:object_r:vendor_ntf_file:s0
 /vendor/bin/ntf-service    u:object_r:vendor_ntf_exec:s0
-
-# Power
-/vendor/bin/hw/android\.hardware\.power-service\.pixel-libperfmgr    u:object_r:hal_power_default_exec:s0
 
 # Sensors
 /vendor/bin/hw/vendor\.noth\.hardware\.sensor\.sensor_extension-service    u:object_r:hal_sensors_default_exec:s0

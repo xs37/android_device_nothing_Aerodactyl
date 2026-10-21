@@ -21,6 +21,7 @@ from extract_utils.main import (
 namespace_imports = [
     'device/nothing/Aerodactyl',
     'hardware/mediatek',
+    'hardware/mediatek/libion_mtk',
     'hardware/mediatek/libmtkperf_client',
 ]
 
@@ -40,6 +41,21 @@ lib_fixups: lib_fixups_user_type = {
 }
 
 
+_displayservice_ping = (
+    b'_ZN7lineage10frameworks14displayservice4V1_014IEventCallback4pingEv'
+)
+_displayservice_unresolved = (
+    rb'_ZN7lineage10frameworks14displayservice4V1_01[45]I[A-Za-z0-9_]*'
+    rb'(?:linkToDeath|unlinkToDeath|getDebugInfo|getHashChain|'
+    rb'interfaceChain|interfaceDescriptor|5debug|registerForNotifications)'
+    rb'[A-Za-z0-9_]*'
+)
+_displayservice_ctor_vtable = (
+    rb'_ZTCN[A-Za-z0-9_]+E\d+_'
+    rb'N7lineage10frameworks14displayservice4V1_01[45]I[A-Za-z0-9_]*E'
+)
+
+
 blob_fixups: blob_fixups_user_type = {
     (
         'system_ext/etc/init/init.vtservice.rc',
@@ -48,6 +64,8 @@ blob_fixups: blob_fixups_user_type = {
         .regex_replace('start', 'enable'),
     'system_ext/lib64/libimsma.so': blob_fixup()
         .replace_needed('libsink.so', 'libsink-mtk.so'),
+    'system_ext/lib64/libsink-mtk.so': blob_fixup()
+        .add_needed('libaudioclient_shim.so'),
     'system_ext/priv-app/ImsService/ImsService.apk': blob_fixup()
         .apktool_patch('blob-patches/ImsService'),
     'vendor/bin/hw/android.hardware.graphics.composer@3.1-service': blob_fixup()
@@ -57,10 +75,14 @@ blob_fixups: blob_fixups_user_type = {
         .replace_needed('libcodec2_hidl@1.1.so', 'libcodec2_hidl@1.1-v33.so')
         .replace_needed('libcodec2_hidl@1.2.so', 'libcodec2_hidl@1.2-v33.so')
         .replace_needed('libcodec2_vndk.so', 'libcodec2_vndk-v33.so'),
+    'vendor/bin/hw/android.hardware.biometrics.face-service.noth': blob_fixup()
+        .replace_needed('libcamera2ndk_vendor.so', 'libcamera2ndk_vendor-v33.so'),
     'vendor/bin/hw/android.hardware.security.keymint@2.0-service.trustonic': blob_fixup()
         .add_needed('android.hardware.security.rkp-V2-ndk.so'),
     'vendor/bin/hw/mt6886/camerahalserver': blob_fixup()
         .add_needed('libcamera_metadata_shim.so'),
+    'vendor/bin/mnld' : blob_fixup()
+        .replace_needed('libmnl.so', 'libmnl_mtk.so'),
     'vendor/etc/displayconfig/display_id_4627039422300187648.xml': blob_fixup()
         .regex_replace('<transitionPoint>0.6</transitionPoint>', '<transitionPoint>0.9221</transitionPoint>'),
     'vendor/etc/vintf/manifest/manifest_media_c2_V1_2_default.xml': blob_fixup()
@@ -76,6 +98,8 @@ blob_fixups: blob_fixups_user_type = {
         .regex_replace('# STNFC_FW_BIN_NAME', 'STNFC_FW_BIN_NAME')
         .regex_replace('# STNFC_FW_CONF_NAME', 'STNFC_FW_CONF_NAME')
         .regex_replace('STNFC_FW_DEBUG_ENABLED=1', 'STNFC_FW_DEBUG_ENABLED=0'),
+    'vendor/lib64/hw/android.hardware.audio@7.1-impl-mediatek.so': blob_fixup()
+        .replace_needed('android.hardware.audio@7.1-util.so', 'android.hardware.audio@7.1-util-v33.so'),
     'vendor/lib64/hw/audio.primary.mediatek.so': blob_fixup()
         .replace_needed('libalsautils.so', 'libalsautils-v33.so')
         .replace_needed('libtinyxml2.so', 'libtinyxml2-v34.so')
@@ -100,6 +124,18 @@ blob_fixups: blob_fixups_user_type = {
         .add_needed('libprocessgroup_shim.so'),
     'vendor/lib64/mt6886/libmorpho_video_stabilizer.so': blob_fixup()
         .add_needed('libutils.so'),
+    'vendor/lib64/mt6886/libmtkcam_hal_android_app_cbadaptor.so': blob_fixup()
+        .replace_needed('android.frameworks.displayservice@1.0.so',
+                        'lineage.frameworks.displayservice@1.0.so')
+        .binary_regex_replace(
+            b'7android10frameworks14displayservice',
+            b'7lineage10frameworks14displayservice')
+        .binary_regex_replace(
+            _displayservice_unresolved,
+            lambda m: _displayservice_ping.ljust(len(m.group(0)), b'\x00'))
+        .binary_regex_replace(
+            _displayservice_ctor_vtable,
+            lambda m: _displayservice_ping.ljust(len(m.group(0)), b'\x00')),
     'vendor/lib64/mt6886/libneuralnetworks_sl_driver_mtk_prebuilt.so': blob_fixup()
         .clear_symbol_version('AHardwareBuffer_allocate')
         .clear_symbol_version('AHardwareBuffer_createFromHandle')
@@ -109,6 +145,8 @@ blob_fixups: blob_fixups_user_type = {
         .clear_symbol_version('AHardwareBuffer_release')
         .clear_symbol_version('AHardwareBuffer_unlock')
         .add_needed('libbase_shim.so'),
+    'vendor/lib64/libcamera2ndk_vendor-v33.so': blob_fixup()
+        .replace_needed('libstagefright_foundation.so', 'libstagefright_foundation-v33.so'),
     'vendor/lib64/libcodec2_hidl@1.0-v33.so': blob_fixup()
         .replace_needed('libstagefright_bufferqueue_helper.so', 'libstagefright_bufferqueue_helper-bp2a.so')
         .replace_needed('libcodec2_hidl_plugin.so', 'libcodec2_hidl_plugin-v33.so')
@@ -148,6 +186,7 @@ blob_fixups: blob_fixups_user_type = {
     ): blob_fixup()
         .replace_needed('libcodec2_soft_common.so', 'libcodec2_soft_common-v33.so')
         .replace_needed('libcodec2_vndk.so', 'libcodec2_vndk-v33.so')
+        .replace_needed('libformatter.so', 'libformatter_mtk.so')
         .replace_needed('libstagefright_foundation.so', 'libstagefright_foundation-v33.so')
         .replace_needed('libsfplugin_ccodec_utils.so', 'libsfplugin_ccodec_utils-v33.so')
         .replace_needed('libui.so', 'libui-v34.so'),
@@ -174,8 +213,10 @@ blob_fixups: blob_fixups_user_type = {
     'vendor/lib64/libsfplugin_ccodec_utils-v33.so': blob_fixup()
         .replace_needed('libcodec2_vndk.so', 'libcodec2_vndk-v33.so')
         .replace_needed('libstagefright_foundation.so', 'libstagefright_foundation-v33.so'),
-    'vendor/bin/hw/mtkfusionrild': blob_fixup()
-        .add_needed('libutils-v33.so'),
+    'vendor/lib64/libstfaceunlockppl.so': blob_fixup()
+        .sig_replace('fd 7b bd a9 fd 03 00 91 f3 53 01 a9 f4 03 00 aa f3 03 01 aa a0 6e 02 d0', '00 00 80 52 c0 03 5f d6 1f 20 03 d5 1f 20 03 d5 1f 20 03 d5 1f 20 03 d5')
+        .sig_replace('fd 7b bb a9 fd 03 00 91 f3 53 01 a9 a0 17 00 f9 5b c3 ff 97 a1 17 40 f9', '00 00 80 52 c0 03 5f d6 1f 20 03 d5 1f 20 03 d5 1f 20 03 d5 1f 20 03 d5')
+        .sig_replace('61 75 02 f0 21 80 66 39 01 00 00 b9 00 00 80 52 c0 03 5f d6', '21 00 80 52 01 00 00 b9 00 00 80 52 c0 03 5f d6 1f 20 03 d5'),
     (
         'vendor/lib64/libnvram.so',
         'vendor/lib64/libtflite_mtk.so'
